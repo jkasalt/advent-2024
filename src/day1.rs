@@ -16,6 +16,7 @@ fn gen(input: &str) -> (Vec<i32>, Vec<i32>) {
 }
 
 #[aoc(day1, part1)]
+#[allow(clippy::stable_sort_primitive)] // stable sort is faster by 20%
 fn p1((v1, v2): &(Vec<i32>, Vec<i32>)) -> u32 {
     let mut v1 = v1.clone();
     let mut v2 = v2.clone();
