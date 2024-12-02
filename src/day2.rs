@@ -13,23 +13,25 @@ fn gen(input: &str) -> Vec<Vec<i32>> {
 }
 
 fn is_safe_skipping(it: &[i32]) -> bool {
-    let safe_interval = 1..=3;
     (0..it.len()).any(|to_skip| {
-        let diff = it
+        let diffs = it
             .iter()
             .enumerate()
             .filter_map(|(i, x)| if i == to_skip { None } else { Some(*x) })
             .map_windows(|[n0, n1]| n1 - n0);
-        diff.clone().all(|d| safe_interval.contains(&d))
-            || diff.clone().all(|d| safe_interval.contains(&-d))
+        is_safe_diff(diffs)
     })
 }
 
 fn is_safe(it: &[i32]) -> bool {
-    let safe_interval = 1..=3;
-    let diff = it.windows(2).map(|window| window[1] - window[0]);
-    diff.clone().all(|d| safe_interval.contains(&d))
-        || diff.clone().all(|d| safe_interval.contains(&-d))
+    let diffs = it.windows(2).map(|w| w[1] - w[0]);
+    is_safe_diff(diffs)
+}
+
+fn is_safe_diff<I: IntoIterator<Item = i32> + Clone>(diffs: I) -> bool {
+    let si = 1..=3;
+    diffs.clone().into_iter().all(|d| si.contains(&d))
+        || diffs.into_iter().all(|d| si.contains(&-d))
 }
 
 #[aoc(day2, part1)]
