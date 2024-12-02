@@ -1,3 +1,5 @@
+#![feature(iter_map_windows)]
+
 mod day1;
 mod day2;
 

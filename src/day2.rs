@@ -12,14 +12,20 @@ fn gen(input: &str) -> Vec<Vec<i32>> {
         .collect()
 }
 
-fn skipping(it: &[i32], to_skip: usize) -> Vec<i32> {
-    it.iter()
-        .enumerate()
-        .filter_map(|(i, x)| if i == to_skip { None } else { Some(*x) })
-        .collect()
+fn is_safe_skipping(it: &[i32]) -> bool {
+    let safe_interval = 1..=3;
+    (0..it.len()).any(|to_skip| {
+        let diff = it
+            .iter()
+            .enumerate()
+            .filter_map(|(i, x)| if i == to_skip { None } else { Some(*x) })
+            .map_windows(|[n0, n1]| n1 - n0);
+        diff.clone().all(|d| safe_interval.contains(&d))
+            || diff.clone().all(|d| safe_interval.contains(&-d))
+    })
 }
 
-fn safe(it: &[i32]) -> bool {
+fn is_safe(it: &[i32]) -> bool {
     let safe_interval = 1..=3;
     let diff = it.windows(2).map(|window| window[1] - window[0]);
     diff.clone().all(|d| safe_interval.contains(&d))
@@ -28,19 +34,12 @@ fn safe(it: &[i32]) -> bool {
 
 #[aoc(day2, part1)]
 fn p1(reports: &[Vec<i32>]) -> usize {
-    reports.iter().filter(|r| safe(r)).count()
+    reports.iter().filter(|r| is_safe(r)).count()
 }
 
 #[aoc(day2, part2)]
 fn p2(reports: &[Vec<i32>]) -> usize {
-    reports
-        .iter()
-        .filter(|r| {
-            (0..r.len())
-                .map(|i| skipping(r, i))
-                .any(|skipped| safe(&skipped))
-        })
-        .count()
+    reports.iter().filter(|r| is_safe_skipping(r)).count()
 }
 
 #[cfg(test)]
