@@ -1,8 +1,6 @@
 use std::fmt;
 use std::ops;
 
-use crate::position::Position;
-
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Matrix<T> {
     pub vec: Vec<T>,

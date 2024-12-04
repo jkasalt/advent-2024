@@ -1,80 +1,50 @@
 use aoc_runner_derive::{aoc, aoc_generator};
 
-use crate::{matrix::Matrix, position::Position};
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-enum Letter {
-    X,
-    M,
-    A,
-    S,
-}
-
-impl Letter {
-    const fn next(self) -> Option<Self> {
-        match self {
-            Self::X => Some(Self::M),
-            Self::M => Some(Self::A),
-            Self::A => Some(Self::S),
-            Self::S => None,
-        }
-    }
-}
-
-impl std::str::FromStr for Letter {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "X" => Ok(Self::X),
-            "M" => Ok(Self::M),
-            "A" => Ok(Self::A),
-            "S" => Ok(Self::S),
-            _ => Err(()),
-        }
-    }
-}
+use crate::matrix::Matrix;
 
 #[aoc_generator(day4)]
-fn parse(input: &str) -> Matrix<Letter> {
+fn parse(input: &str) -> Matrix<char> {
     let width = input.lines().next().map(str::len).unwrap();
     let height = input.lines().count();
-    let items = input.chars().filter_map(|c| format!("{c}").parse().ok());
+    let items = input.chars().filter(char::is_ascii_graphic);
     Matrix::new(items, width, height)
 }
 
 #[aoc(day4, part1)]
-fn p1(letters: &Matrix<Letter>) -> usize {
+fn p1(letters: &Matrix<char>) -> usize {
     let deltas = [
-        Position::from((1, 0)),
-        Position::from((-1, 0)),
-        Position::from((0, 1)),
-        Position::from((0, -1)),
-        Position::from((1, 1)),
-        Position::from((-1, 1)),
-        Position::from((1, -1)),
-        Position::from((-1, -1)),
+        (1, 0),
+        (-1, 0),
+        (0, 1),
+        (0, -1),
+        (1, 1),
+        (-1, 1),
+        (1, -1),
+        (-1, -1),
     ];
     let x_pos = letters
         .iter_pos()
-        .filter(|(_, letter)| **letter == Letter::X)
-        .map(|(pos, _)| Position::from(pos));
+        .filter(|(_, letter)| **letter == 'X')
+        .map(|(pos, _)| pos);
 
     // for X, we look at the deltas
     // for delta we want (1, M) -> (2, A) -> (3, S)
-    // if that is the case we increase count by 1
-    let chain = [Letter::X, Letter::M, Letter::A, Letter::S];
+    // count the number of times the chain gets to the end
+    let chain = [(1, 'M'), (2, 'A'), (3, 'S')];
     x_pos
         .into_iter()
         .map(|x_pos| {
             deltas
                 .iter()
                 .filter(|delta| {
-                    chain.iter().enumerate().all(|(coeff, wanting)| {
-                        let new_pos: Position = x_pos + (**delta * coeff);
+                    chain.iter().all(|&(coeff, wanting)| {
+                        let new_pos = (
+                            i32::try_from(x_pos.0).unwrap() + delta.0 * coeff,
+                            i32::try_from(x_pos.1).unwrap() + delta.1 * coeff,
+                        );
                         letters
-                            .get(new_pos.x, new_pos.y)
-                            .is_some_and(|letter| letter == wanting)
+                            .get(new_pos.0.try_into().unwrap(), new_pos.1.try_into().unwrap())
+                            .is_some_and(|&letter| letter == wanting)
                     })
                 })
                 .count()
@@ -83,49 +53,37 @@ fn p1(letters: &Matrix<Letter>) -> usize {
 }
 
 #[aoc(day4, part2)]
-fn p2(letters: &Matrix<Letter>) -> usize {
+fn p2(letters: &Matrix<char>) -> usize {
     // for A we look at the cross neighbors
     // if they are all M and S and M's are not crossed, we gucci, we tamagucci
     let a_pos = letters
         .iter_pos()
-        .filter(|(_, letter)| **letter == Letter::A)
+        .filter(|(_, letter)| **letter == 'A')
         .map(|(pos, _)| pos);
 
-    let mut count = 0;
     let deltas = [(1, 1), (-1, 1), (1, -1), (-1, -1)];
-    for a_pos in a_pos {
-        let nbs: Vec<_> = deltas
-            .iter()
-            .map(|d| (a_pos.0 as isize + d.0, a_pos.1 as isize + d.1))
-            .collect();
-        let all_good_letters = nbs
-            .iter()
-            .all(|&(nx, ny)| matches!(letters.get(nx, ny), Some(Letter::M | Letter::S)));
-        let no_cross_letters = (letters.get(nbs[0].0, nbs[0].1) != letters.get(nbs[3].0, nbs[3].1))
-            && letters.get(nbs[1].0, nbs[1].1) != letters.get(nbs[2].0, nbs[2].1);
-        //println!(
-        //    "{a_pos:?} - good_letters: {all_good_letters}, no_cross_letters: {no_cross_letters}"
-        //);
-        if all_good_letters && no_cross_letters {
-            count += 1;
-        }
-    }
-    count
-}
+    a_pos
+        .filter(|a_pos| {
+            let nbs: Vec<_> = deltas
+                .iter()
+                .map(|d| {
+                    (
+                        isize::try_from(a_pos.0).unwrap() + d.0,
+                        isize::try_from(a_pos.1).unwrap() + d.1,
+                    )
+                })
+                .collect();
+            let all_good_letters = nbs
+                .iter()
+                .all(|&(nx, ny)| matches!(letters.get(nx, ny), Some('M' | 'S')));
+            let no_cross_letters = (letters.get(nbs[0].0, nbs[0].1)
+                != letters.get(nbs[3].0, nbs[3].1))
+                && letters.get(nbs[1].0, nbs[1].1) != letters.get(nbs[2].0, nbs[2].1);
 
-//fn search(letters: &Matrix<Letter>, (x, y): Position) -> usize {
-//    let sample = letters[(x, y)];
-//    println!("({x},{y}) - {sample:?}");
-//    if sample == Letter::S {
-//        return 1;
-//    }
-//    letters
-//        .neighbor_indices(x, y)
-//        .into_iter()
-//        .filter(|(xx, yy)| sample.next().is_some_and(|s| s == letters[(xx, yy)]))
-//        .map(|pos| search(letters, pos))
-//        .sum()
-//}
+            all_good_letters && no_cross_letters
+        })
+        .count()
+}
 
 #[cfg(test)]
 mod test {
