@@ -2,26 +2,7 @@ use std::fmt::Debug;
 
 use aoc_runner_derive::{aoc, aoc_generator};
 
-#[derive(Clone)]
-struct Memory(Vec<Option<usize>>);
-
-impl FromIterator<Option<usize>> for Memory {
-    fn from_iter<T: IntoIterator<Item = Option<usize>>>(iter: T) -> Self {
-        Self(iter.into_iter().collect())
-    }
-}
-
-impl Debug for Memory {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for m in &self.0 {
-            match m {
-                Some(n) => write!(f, "{n}"),
-                None => write!(f, "."),
-            }?;
-        }
-        Ok(())
-    }
-}
+type Memory = Vec<Option<usize>>;
 
 #[aoc_generator(day9, part1)]
 fn parse1(input: &str) -> Memory {
@@ -44,7 +25,6 @@ fn parse1(input: &str) -> Memory {
 
 fn checksum(input: Memory) -> usize {
     input
-        .0
         .into_iter()
         .enumerate()
         .map(|(i, o)| i * o.unwrap_or(0))
@@ -55,12 +35,12 @@ fn checksum(input: Memory) -> usize {
 fn part1(input: &Memory) -> usize {
     let mut input = input.to_owned();
     loop {
-        let last_file_pos = input.0.iter().rposition(Option::is_some).unwrap();
-        let first_free_pos = input.0.iter().position(Option::is_none).unwrap();
+        let last_file_pos = input.iter().rposition(Option::is_some).unwrap();
+        let first_free_pos = input.iter().position(Option::is_none).unwrap();
         if last_file_pos < first_free_pos {
             return checksum(input);
         }
-        input.0.swap(last_file_pos, first_free_pos);
+        input.swap(last_file_pos, first_free_pos);
     }
 }
 
@@ -71,7 +51,7 @@ struct MemoryShard {
 }
 
 impl MemoryShard {
-    fn raw_memory(&self) -> Vec<Option<usize>> {
+    fn raw_memory(&self) -> Memory {
         vec![self.id; self.size]
     }
 }
@@ -111,9 +91,7 @@ fn part2(input: &[MemoryShard]) -> usize {
             input.insert(free_space_pos, to_move);
         }
     }
-    checksum(Memory(
-        input.iter().flat_map(MemoryShard::raw_memory).collect(),
-    ))
+    checksum(input.iter().flat_map(MemoryShard::raw_memory).collect())
 }
 
 #[cfg(test)]
