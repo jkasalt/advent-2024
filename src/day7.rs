@@ -36,7 +36,8 @@ fn dfs(target: u64, current: u64, nums: &[u64]) -> bool {
 fn part1(input: &[Equation]) -> u64 {
     input
         .iter()
-        .filter_map(|eq| dfs(eq.target, 0, &eq.nums).then_some(eq.target))
+        .filter(|eq| dfs(eq.target, 0, &eq.nums))
+        .map(|eq| eq.target)
         .sum()
 }
 
@@ -60,7 +61,8 @@ fn dfs2(target: u64, current: u64, nums: &[u64]) -> bool {
 fn part2(input: &[Equation]) -> u64 {
     input
         .iter()
-        .filter_map(|eq| dfs2(eq.target, 0, &eq.nums).then_some(eq.target))
+        .filter(|eq| dfs2(eq.target, 0, &eq.nums))
+        .map(|eq| eq.target)
         .sum()
 }
 
