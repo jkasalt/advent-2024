@@ -7,7 +7,8 @@ pub struct Pos {
 }
 
 impl Pos {
-    pub fn new(x: isize, y: isize) -> Self {
+    #[must_use]
+    pub const fn new(x: isize, y: isize) -> Self {
         Self { x, y }
     }
 }

@@ -1,5 +1,5 @@
 use crate::pos::Pos;
-use std::{collections::HashMap, sync::LazyLock};
+use std::sync::LazyLock;
 
 use aoc_runner_derive::{aoc, aoc_generator};
 use regex::Regex;
@@ -36,38 +36,23 @@ fn parse(input: &str) -> Vec<ClawMachine> {
         .collect()
 }
 
+// can't be bothered to add num-traits dependency
+#[allow(clippy::cast_precision_loss)]
+#[allow(clippy::cast_sign_loss)]
+#[allow(clippy::cast_possible_truncation)]
 fn search(machine: &ClawMachine) -> Option<u64> {
-    fn aux(
-        machine: &ClawMachine,
-        a_amount: isize,
-        b_amount: isize,
-        memo: &mut HashMap<(isize, isize), Option<u64>>,
-    ) -> Option<u64> {
-        let current = machine.a * a_amount + machine.b * b_amount;
-        let tokens = (a_amount * 3 + b_amount).try_into().unwrap();
-        if current == machine.target {
-            memo.insert((a_amount, b_amount), Some(tokens));
-            return Some(tokens);
-        }
-        if current.x > machine.target.x || current.y > machine.target.y {
-            return None;
-        }
-        if let Some(res) = memo.get(&(a_amount, b_amount)) {
-            return *res;
-        }
-        let going_a = aux(machine, a_amount + 1, b_amount, memo);
-        let going_b = aux(machine, a_amount, b_amount + 1, memo);
+    let det = (machine.a.x * machine.b.y - machine.a.y * machine.b.x) as f64;
+    let sol = (
+        (machine.b.y * machine.target.x - machine.b.x * machine.target.y) as f64 / det,
+        (-machine.a.y * machine.target.x + machine.a.x * machine.target.y) as f64 / det,
+    );
 
-        let res = match (going_a, going_b) {
-            (Some(ra), Some(rb)) => Some(ra.min(rb)),
-            (None, Some(rb)) => Some(rb),
-            (Some(ra), None) => Some(ra),
-            (None, None) => None,
-        };
-        memo.insert((a_amount, b_amount), res);
-        res
+    if (sol.0.round() - sol.0).abs() < f64::EPSILON && (sol.1.round() - sol.1).abs() < f64::EPSILON
+    {
+        Some(sol.0 as u64 * 3 + sol.1 as u64)
+    } else {
+        None
     }
-    aux(machine, 0, 0, &mut HashMap::new())
 }
 
 #[aoc(day13, part1)]
@@ -80,9 +65,9 @@ fn part2(machines: &[ClawMachine]) -> u64 {
     let added = 10_000_000_000_000;
     machines
         .iter()
-        .map(|m| ClawMachine {
+        .map(|&m| ClawMachine {
             target: Pos::new(m.target.x + added, m.target.y + added),
-            ..*m
+            ..m
         })
         .filter_map(|m| search(&m))
         .sum()
@@ -96,9 +81,21 @@ mod tests {
     const EXAMPLE: &str = "Button A: X+94, Y+34
 Button B: X+22, Y+67
 Prize: X=8400, Y=5400
+
+Button A: X+26, Y+66
+Button B: X+67, Y+21
+Prize: X=12748, Y=12176
+
+Button A: X+17, Y+86
+Button B: X+84, Y+37
+Prize: X=7870, Y=6450
+
+Button A: X+69, Y+23
+Button B: X+27, Y+71
+Prize: X=18641, Y=10279
 ";
 
-    #[test_case(EXAMPLE => 280; "example")]
+    #[test_case(EXAMPLE => 480; "example")]
     fn part1_example(input: &str) -> u64 {
         part1(&parse(input))
     }
