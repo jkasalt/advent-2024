@@ -1,20 +1,20 @@
 use std::ops::{Add, Mul};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct Pos {
-    pub x: isize,
-    pub y: isize,
+pub struct Pos<T> {
+    pub x: T,
+    pub y: T,
 }
 
-impl Pos {
+impl<T> Pos<T> {
     #[must_use]
-    pub const fn new(x: isize, y: isize) -> Self {
+    pub const fn new(x: T, y: T) -> Self {
         Self { x, y }
     }
 }
 
-impl From<(isize, isize)> for Pos {
-    fn from(value: (isize, isize)) -> Self {
+impl<T> From<(T, T)> for Pos<T> {
+    fn from(value: (T, T)) -> Self {
         Self {
             x: value.0,
             y: value.1,
@@ -22,7 +22,10 @@ impl From<(isize, isize)> for Pos {
     }
 }
 
-impl Add for Pos {
+impl<T> Add for Pos<T>
+where
+    T: Add<Output = T>,
+{
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
         Self {
@@ -32,10 +35,13 @@ impl Add for Pos {
     }
 }
 
-impl Mul<isize> for Pos {
+impl<T> Mul<T> for Pos<T>
+where
+    T: Mul<Output = T> + Clone + Copy,
+{
     type Output = Self;
 
-    fn mul(self, rhs: isize) -> Self::Output {
+    fn mul(self, rhs: T) -> Self::Output {
         Self {
             x: self.x * rhs,
             y: self.y * rhs,

@@ -9,18 +9,18 @@ static RE_TARGET: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"X=(\d+), Y=(\d
 
 #[derive(Clone, Copy)]
 struct ClawMachine {
-    a: Pos,
-    b: Pos,
-    target: Pos,
+    a: Pos<f64>,
+    b: Pos<f64>,
+    target: Pos<f64>,
 }
 
 #[aoc_generator(day13)]
 fn parse(input: &str) -> Vec<ClawMachine> {
-    fn parse_diff(line: &str) -> Pos {
+    fn parse_diff(line: &str) -> Pos<f64> {
         let [x, y] = RE_DIFF.captures(line).unwrap().extract().1;
         Pos::new(x.parse().unwrap(), y.parse().unwrap())
     }
-    fn parse_target(line: &str) -> Pos {
+    fn parse_target(line: &str) -> Pos<f64> {
         let [x, y] = RE_TARGET.captures(line).unwrap().extract().1;
         Pos::new(x.parse().unwrap(), y.parse().unwrap())
     }
@@ -41,10 +41,10 @@ fn parse(input: &str) -> Vec<ClawMachine> {
 #[allow(clippy::cast_sign_loss)]
 #[allow(clippy::cast_possible_truncation)]
 fn search(machine: &ClawMachine) -> Option<u64> {
-    let det = (machine.a.x * machine.b.y - machine.a.y * machine.b.x) as f64;
+    let det = machine.a.x * machine.b.y - machine.a.y * machine.b.x;
     let sol = (
-        (machine.b.y * machine.target.x - machine.b.x * machine.target.y) as f64 / det,
-        (-machine.a.y * machine.target.x + machine.a.x * machine.target.y) as f64 / det,
+        machine.b.y * machine.target.x - machine.b.x * machine.target.y / det,
+        -machine.a.y * machine.target.x + machine.a.x * machine.target.y / det,
     );
 
     if (sol.0.round() - sol.0).abs() < f64::EPSILON && (sol.1.round() - sol.1).abs() < f64::EPSILON
@@ -62,7 +62,7 @@ fn part1(machines: &[ClawMachine]) -> u64 {
 
 #[aoc(day13, part2)]
 fn part2(machines: &[ClawMachine]) -> u64 {
-    let added = 10_000_000_000_000;
+    let added = 10_000_000_000_000.0;
     machines
         .iter()
         .map(|&m| ClawMachine {

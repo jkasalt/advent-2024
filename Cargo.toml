@@ -9,8 +9,9 @@ aoc-runner-derive = "0.3.0"
 regex = "1.11.1"
 
 [lints.clippy]
-pedantic = "warn"
-nursery = "warn"
+pedantic = {level = "warn", priority = -1}
+nursery = {level = "warn", priority = -1}
+suboptimal_flops = "allow"
 
 [dev-dependencies]
 test-case = "3.3.1"
