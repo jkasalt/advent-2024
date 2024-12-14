@@ -12,6 +12,7 @@ regex = "1.11.1"
 pedantic = {level = "warn", priority = -1}
 nursery = {level = "warn", priority = -1}
 suboptimal_flops = "allow"
+similar_names = "allow"
 
 [dev-dependencies]
 test-case = "3.3.1"
