@@ -63,28 +63,21 @@ fn simulate(info: &Info, max_iter: usize, is_part2: bool) -> Vec<Pos<i64>> {
                 pos.y = pos.y.rem_euclid(height);
             });
         if is_part2 {
-            println!("{n}");
-            let all_close = positions.iter().all(|pos| {
-                positions
-                    .iter()
-                    //.inspect(|other| {
-                    //    println!("{} {}", (other.x - pos.x).abs(), (other.y - pos.y).abs());
-                    //})
-                    .any(|other| {
-                        other != pos && (other.x - pos.x).abs() <= 4 && (other.y - pos.y).abs() <= 4
-                    })
-            });
-            if all_close {
+            let mut picture = String::new();
+            for y in 0..height {
                 for x in 0..width {
-                    for y in 0..height {
-                        if positions.iter().any(|pos| pos.x == x && pos.y == y) {
-                            print!("#");
-                        } else {
-                            print!(".");
-                        }
+                    if positions.iter().any(|pos| pos.x == x && pos.y == y) {
+                        picture.push('#');
+                    } else {
+                        picture.push('.');
                     }
-                    println!();
                 }
+                picture.push('\n');
+            }
+
+            if picture.contains("#########") {
+                println!("{picture}");
+                println!("{}", n + 1);
                 let mut user_input = String::new();
                 let stdin = io::stdin();
                 stdin.lock().read_line(&mut user_input).unwrap();
@@ -122,7 +115,7 @@ fn part1(info: &Info) -> usize {
 
 #[aoc(day14, part2)]
 fn part2(info: &Info) -> usize {
-    simulate(info, usize::MAX, true);
+    simulate(info, 10000, true);
     0
 }
 
