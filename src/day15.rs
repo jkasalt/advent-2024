@@ -90,31 +90,49 @@ fn simulate(info: &Info) -> usize {
         .map(|pos| (pos.0.try_into().unwrap(), pos.1.try_into().unwrap()))
         .map(Pos::from)
         .unwrap();
-    for d in &info.instructions {
+    'dir: for d in &info.instructions {
         let mut wants_to_move = vec![robot_pos];
         let mut needs_to_be_free = vec![robot_pos + d.delta()];
         loop {
-            wants_to_move.push(needs_to_be_free);
-            match warehouse.get(needs_to_be_free.x, needs_to_be_free.y){
-                Some('O') => needs_to_be_free = needs_to_be_free + d.delta(),
-                Some('#') | None => {
-                    println!("Move {d:?}:\n{warehouse:?}");
-                    break;
-                },
-                Some('.') => {
-                    robot_pos = wants_to_move[1];
-                    let mut rotated_pos: Vec<Pos<isize>> = vec![*wants_to_move.last().unwrap()];
-                    rotated_pos.extend(&wants_to_move[..wants_to_move.len()]);
-                    let rotated_items:Vec<_> = rotated_pos.iter()
-                        .filter_map(|pos| warehouse.get(pos.x, pos.y).copied())
-                        .collect();
-                    for (pos, new_cell) in wants_to_move.iter().zip(rotated_items.into_iter()) {
-                        *warehouse.get_mut(pos.x, pos.y).unwrap() = new_cell;
+            let all_free = needs_to_be_free
+                .iter()
+                .filter_map(|pos| warehouse.get(pos.x, pos.y))
+                .all(|c| *c == '.');
+            if all_free {
+                // to do the move, start from the furthermost positions, say (x,y), and
+                // swap(matrix[x,y], matrix[x-dx, y-dy])
+                // also remember to update the robot's position
+                todo!()
+            }
+            // otherwise check those that need to be free
+            let mut to_switch = Vec::new();
+            for (i, cell_pos) in needs_to_be_free.iter().enumerate() {
+                match warehouse.get(cell_pos.x, cell_pos.y) {
+                    // if wall: stop everything and nobody moves
+                    None | Some('#') => continue 'dir,
+                    Some('O') => to_switch.push((Some(i), *cell_pos)),
+                    Some('[') => {
+                        to_switch.push((Some(i), *cell_pos));
+                        to_switch.push((None, *cell_pos + (1, 0).into()));
                     }
-                    break;
-                },
-                Some('@') => panic!("found robot at {needs_to_be_free:?}, but there is already one at {robot_pos:?}\n\n{warehouse:?}"),
-                Some(x) => panic!("unexpected char in matrix: {x} at {needs_to_be_free:?}\n{warehouse:?}"),
+                    Some(']') => {
+                        to_switch.push((Some(i), *cell_pos));
+                        to_switch.push((None, *cell_pos + (-1, 0).into()));
+                    }
+                    Some('@') => panic!("you are not supposed to be here"),
+                    Some('.') => {}
+                    Some(x) => panic!("unexpected char {x} at {cell_pos:?}"),
+                }
+            }
+            // if boulder:
+            // say that him and his neighbor wants to move
+            // remove it from the needs_to_be_free and add to it the spaces the boulder would move
+            for (i, pos) in to_switch {
+                wants_to_move.push(pos);
+                if let Some(i) = i {
+                    needs_to_be_free.swap_remove(i);
+                }
+                needs_to_be_free.push(pos + d.delta());
             }
         }
     }
