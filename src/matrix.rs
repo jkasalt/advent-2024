@@ -1,6 +1,8 @@
 use std::fmt;
 use std::ops;
 
+use crate::pos::Pos;
+
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Matrix<T> {
     pub vec: Vec<T>,
@@ -16,7 +18,11 @@ impl<T> Matrix<T> {
         I: IntoIterator<Item = T>,
     {
         let vec: Vec<T> = items.into_iter().collect();
-        assert_eq!(vec.len(), width * height);
+        assert_eq!(
+            vec.len(),
+            width * height,
+            "length of items given does not match width * height"
+        );
         Self { vec, width, height }
     }
 
@@ -285,6 +291,21 @@ impl<T> ops::IndexMut<(&usize, &usize)> for Matrix<T> {
             self.width
         );
         &mut self.vec[x + y * self.width]
+    }
+}
+
+impl<T> ops::Index<Pos<usize>> for Matrix<T> {
+    type Output = T;
+    fn index(&self, pos: Pos<usize>) -> &Self::Output {
+        let (x, y) = pos.into();
+        &self[(x, y)]
+    }
+}
+
+impl<T> ops::IndexMut<Pos<usize>> for Matrix<T> {
+    fn index_mut(&mut self, pos: Pos<usize>) -> &mut Self::Output {
+        let (x, y) = pos.into();
+        &mut self[(x, y)]
     }
 }
 
