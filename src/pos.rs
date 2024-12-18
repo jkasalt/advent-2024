@@ -1,4 +1,4 @@
-use std::ops::{Add, Mul};
+use std::ops::{Add, Mul, Sub};
 
 #[derive(Hash, Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Pos<T> {
@@ -45,6 +45,19 @@ where
         Self {
             x: self.x * rhs,
             y: self.y * rhs,
+        }
+    }
+}
+
+impl<T> Sub for Pos<T>
+where
+    T: Sub<Output = T>,
+{
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
         }
     }
 }

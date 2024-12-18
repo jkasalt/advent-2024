@@ -198,9 +198,26 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut count = 0;
-        writeln!(f)?;
         for item in &self.vec {
             write!(f, "{item:?}")?;
+            count += 1;
+            if count == self.width {
+                count = 0;
+                writeln!(f)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl<T> fmt::Display for Matrix<T>
+where
+    T: fmt::Display,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut count = 0;
+        for item in &self.vec {
+            write!(f, "{item}")?;
             count += 1;
             if count == self.width {
                 count = 0;

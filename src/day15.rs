@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use aoc_runner_derive::{aoc, aoc_generator};
 
 use crate::{matrix::Matrix, pos::Pos};
@@ -91,8 +93,8 @@ fn simulate(info: &Info) -> usize {
         .map(Pos::from)
         .unwrap();
     'dir: for d in &info.instructions {
-        let mut wants_to_move = vec![robot_pos];
-        let mut needs_to_be_free = vec![robot_pos + d.delta()];
+        let mut wants_to_move: HashSet<_> = std::iter::once(robot_pos).collect();
+        let mut needs_to_be_free: HashSet<_> = std::iter::once(robot_pos + d.delta()).collect();
         loop {
             let all_free = needs_to_be_free
                 .iter()
@@ -100,39 +102,55 @@ fn simulate(info: &Info) -> usize {
                 .all(|c| *c == '.');
             if all_free {
                 // to do the move, start from the furthermost positions, say (x,y), and
-                // swap(matrix[x,y], matrix[x-dx, y-dy])
+                let mut sorted_moving: Vec<_> = wants_to_move.into_iter().collect();
+                sorted_moving.sort_unstable_by_key(|&Pos { x, y }| match d {
+                    Direction::N => y,
+                    Direction::E => -x,
+                    Direction::S => -y,
+                    Direction::W => x,
+                });
+                for &pos in &sorted_moving {
+                    let other = pos + d.delta();
+                    let x = pos.x.try_into().unwrap();
+                    let y = pos.y.try_into().unwrap();
+                    let xo = other.x.try_into().unwrap();
+                    let yo = other.y.try_into().unwrap();
+                    warehouse.swap((x, y), (xo, yo));
+                }
                 // also remember to update the robot's position
-                todo!()
+                robot_pos = robot_pos + d.delta();
+                break;
             }
             // otherwise check those that need to be free
             let mut to_switch = Vec::new();
-            for (i, cell_pos) in needs_to_be_free.iter().enumerate() {
+            for cell_pos in &needs_to_be_free {
                 match warehouse.get(cell_pos.x, cell_pos.y) {
                     // if wall: stop everything and nobody moves
                     None | Some('#') => continue 'dir,
-                    Some('O') => to_switch.push((Some(i), *cell_pos)),
+                    // if boulder:
+                    // say that him and his neighbor wants to move
+                    Some('O') => to_switch.push(*cell_pos),
                     Some('[') => {
-                        to_switch.push((Some(i), *cell_pos));
-                        to_switch.push((None, *cell_pos + (1, 0).into()));
+                        to_switch.push(*cell_pos);
+                        to_switch.push(*cell_pos + (1, 0).into());
                     }
                     Some(']') => {
-                        to_switch.push((Some(i), *cell_pos));
-                        to_switch.push((None, *cell_pos + (-1, 0).into()));
+                        to_switch.push(*cell_pos);
+                        to_switch.push(*cell_pos + (-1, 0).into());
                     }
                     Some('@') => panic!("you are not supposed to be here"),
                     Some('.') => {}
                     Some(x) => panic!("unexpected char {x} at {cell_pos:?}"),
                 }
             }
-            // if boulder:
-            // say that him and his neighbor wants to move
             // remove it from the needs_to_be_free and add to it the spaces the boulder would move
-            for (i, pos) in to_switch {
-                wants_to_move.push(pos);
-                if let Some(i) = i {
-                    needs_to_be_free.swap_remove(i);
+            for pos in to_switch {
+                wants_to_move.insert(pos);
+                needs_to_be_free.remove(&pos);
+                let moving_into = pos + d.delta();
+                if !wants_to_move.contains(&moving_into) {
+                    needs_to_be_free.insert(moving_into);
                 }
-                needs_to_be_free.push(pos + d.delta());
             }
         }
     }
