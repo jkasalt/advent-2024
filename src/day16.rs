@@ -82,6 +82,8 @@ struct State {
     score: u64,
 }
 
+type Node = (Pos<i64>, Direction);
+
 impl State {
     fn next_states(&self) -> [Self; 3] {
         [
@@ -123,13 +125,13 @@ impl PartialOrd for State {
 
 struct Dijkstra {
     real_end_state: Option<State>,
-    prev: HashMap<(Pos<i64>, Direction), Vec<(Pos<i64>, Direction)>>,
+    prev: HashMap<Node, Vec<Node>>,
 }
 
 fn dijkstra(info: &Info) -> Dijkstra {
-    let mut dist: HashMap<(Pos<i64>, Direction), u64> = HashMap::new();
+    let mut dist = HashMap::new();
     let mut heap = BinaryHeap::new();
-    let mut prev: HashMap<(Pos<i64>, Direction), Vec<(Pos<i64>, Direction)>> = HashMap::new();
+    let mut prev: HashMap<Node, Vec<Node>> = HashMap::new();
     let start_state = State {
         pos: info.start_pos,
         dir: Direction::E,
