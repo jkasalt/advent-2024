@@ -91,7 +91,7 @@ fn operate(opcode: u32, operand: u32, register: &Register) -> OpSideEffect {
 }
 
 fn process(register: &Register, instr: &[u32], cond: impl Fn(&[u32]) -> bool) -> Vec<u32> {
-    let mut register = register.clone();
+    let mut register = *register;
     let mut output = Vec::new();
 
     let mut i = 0;
