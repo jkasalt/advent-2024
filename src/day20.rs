@@ -37,168 +37,104 @@ fn parse(input: &str) -> Info {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Hash, Clone, Copy)]
-struct Node {
-    pos: Pos<isize>,
-    cheat_start: Option<Cheat>,
-    cheat_end: Option<Cheat>,
-}
-
-impl Node {
-    const fn is_cheating(&self) -> Option<Cheat> {
-        if self.cheat_start.is_some() && self.cheat_end.is_none() {
-            self.cheat_start
-        } else {
-            None
-        }
-    }
-}
-
-#[derive(Eq, PartialEq, Hash, Clone, Copy, Debug)]
-struct Cheat {
-    at_time: usize,
-    at_pos: Pos<isize>,
-}
-
-#[derive(Debug)]
-struct State {
-    node: Node,
-    time: usize,
-}
-
-fn bfs(info: &Info, starting_state: State, give_up_time: Option<usize>) -> Vec<State> {
+fn normal_path(info: &Info) -> Vec<Pos<isize>> {
+    // find the path without cheats
     let mut visited = HashSet::new();
-    let mut queue = VecDeque::new();
-    let mut times = Vec::new();
+    visited.insert(info.start);
+    let mut path = vec![info.start];
+    let mut next = info.start;
 
-    queue.push_back(starting_state);
+    while next != info.end {
+        visited.insert(next);
+        let neighbors = [
+            Pos::new(next.x + 1, next.y),
+            Pos::new(next.x - 1, next.y),
+            Pos::new(next.x, next.y + 1),
+            Pos::new(next.x, next.y - 1),
+        ];
 
-    while let Some(mut state) = queue.pop_front() {
-        let pos = state.node.pos;
-        if pos == info.end {
-            times.push(state);
-            continue;
-        }
-        if visited.contains(&state.node) {
-            continue;
-        }
-        if give_up_time.is_some_and(|t| t < state.time) {
-            continue;
-        }
-        // if we are cheating...
-        if let Some(Cheat { at_time, .. }) = state.node.is_cheating() {
-            // stop it if it has been 2 ps
-            if (state.time - at_time) >= 2 {
-                state.node.cheat_end = Some(Cheat {
-                    at_time: state.time,
-                    at_pos: state.node.pos,
-                });
-                // then give up on path if our position is invalid
-                if info
-                    .maze
-                    .get(state.node.pos.x, state.node.pos.y)
-                    .is_some_and(|c| *c == '#')
-                {
-                    continue;
+        next = *neighbors
+            .iter()
+            .find(|n| {
+                info.maze.get(n.x, n.y).is_some_and(|cell| *cell == '.') && !visited.contains(*n)
+            })
+            .unwrap();
+        path.push(next);
+    }
+    path
+}
+
+fn time_saves(info: &Info, path: &[Pos<isize>], max_dist: isize) -> HashMap<usize, i32> {
+    // for each node look at where we can go with a cheat
+    let mut time_saves = HashMap::new();
+    for (picosec_start, &p) in path.iter().enumerate() {
+        println!("{p:?} ---");
+        let mut cheatables = HashSet::new();
+        let mut queue = VecDeque::from([p]);
+        let mut visited = HashSet::new();
+        let deltas = [
+            Pos::new(1, 0),
+            Pos::new(-1, 0),
+            Pos::new(0, 1),
+            Pos::new(0, -1),
+        ];
+
+        while let Some(pp) = queue.pop_front() {
+            if visited.contains(&pp) {
+                continue;
+            }
+            visited.insert(pp);
+            if info.maze.get(pp.x, pp.y).is_some_and(|c| *c == '.') {
+                cheatables.insert(pp);
+            }
+            for d in deltas {
+                let n = pp + d;
+                if !visited.contains(&n) && (p - n).l1_norm() <= max_dist {
+                    println!("dist: {}, to {n:?}", (p - n).l1_norm());
+                    queue.push_back(n);
                 }
             }
         }
-        visited.insert(state.node);
-        let neighbors = [
-            Pos::new(pos.x + 1, pos.y),
-            Pos::new(pos.x - 1, pos.y),
-            Pos::new(pos.x, pos.y + 1),
-            Pos::new(pos.x, pos.y - 1),
-        ];
-        for npos in neighbors {
-            let Some(ncell) = info.maze.get(npos.x, npos.y) else {
-                continue;
-            };
-            // if we are cheating all neighbors are valid
-            if state.node.is_cheating().is_some() {
-                queue.push_back(State {
-                    node: Node {
-                        pos: npos,
-                        ..state.node
-                    },
-                    time: state.time + 1,
-                });
-            } else if state.node.cheat_start.is_none() && *ncell == '#' {
-                // if we haven't cheated yet, and the neighbor is a wall, try to follow a path where we cheat into it
-                debug_assert!(state.node.cheat_end.is_none());
-                queue.push_back(State {
-                    node: Node {
-                        pos: npos,
-                        cheat_start: Some(Cheat {
-                            at_time: state.time,
-                            at_pos: npos,
-                        }),
-                        ..state.node
-                    },
-                    time: state.time + 1,
-                });
-            } else if *ncell == '.' {
-                // if the neighbor is free, try to follow a path where we just go there
-                queue.push_back(State {
-                    node: Node {
-                        pos: npos,
-                        ..state.node
-                    },
-                    time: state.time + 1,
-                });
+        //for d in deltas {
+        //    let n = p + d;
+        //    if info.maze.get(n.x, n.y).is_some_and(|c| *c == '#') {
+        //        let nn = p + d * 2;
+        //        if info.maze.get(nn.x, nn.y).is_some_and(|c| *c == '.') {
+        //            cheatables.insert(nn);
+        //        }
+        //    }
+        //}
+        //
+        //println!("{p:?} can cheat to {cheatables:?}");
+        //println!("{cheatables:?}");
+
+        // find out how much time was saved
+        for cheatable in cheatables {
+            let cheat_len = (p - cheatable).l1_norm().try_into().unwrap();
+            let picosec_arrival = path
+                .iter()
+                .position(|pp| *pp == cheatable)
+                .expect("a cheatable at this point should be in the path");
+            if let Some(time_saved) = picosec_arrival
+                .checked_sub(picosec_start)
+                .and_then(|t| t.checked_sub(cheat_len))
+            {
+                *time_saves.entry(time_saved).or_insert(0) += 1;
             }
         }
     }
-
-    times
-}
-
-fn time_saves(info: &Info) -> Vec<usize> {
-    let no_cheat_start = State {
-        node: Node {
-            pos: info.start,
-            cheat_end: Some(Cheat {
-                at_time: 0,
-                at_pos: info.start,
-            }),
-            cheat_start: Some(Cheat {
-                at_time: 0,
-                at_pos: info.start,
-            }),
-        },
-        time: 0,
-    };
-
-    let no_cheat_time = bfs(info, no_cheat_start, None)
-        .into_iter()
-        .map(|s| s.time)
-        .min()
-        .unwrap();
-
-    let starting_state = State {
-        node: Node {
-            pos: info.start,
-            cheat_start: None,
-            cheat_end: None,
-        },
-        time: 0,
-    };
-    let times = bfs(info, starting_state, Some(no_cheat_time));
-
-    times
-        .iter()
-        .filter(|s| s.time < no_cheat_time)
-        .inspect(|s| println!("{s:?}"))
-        .map(|s| no_cheat_time - s.time)
-        .collect()
+    time_saves
 }
 
 #[aoc(day20, part1)]
-fn part1(info: &Info) -> usize {
-    time_saves(info)
+fn part1(info: &Info) -> i32 {
+    let path = normal_path(info);
+    let time_saves = time_saves(info, &path, 2);
+    time_saves
         .into_iter()
-        .filter(|&delta| delta > info.count_if_more_than)
-        .count()
+        .filter(|(t, _)| *t >= info.count_if_more_than)
+        .map(|(_, c)| c)
+        .sum()
 }
 
 #[cfg(test)]
@@ -223,25 +159,31 @@ mod tests {
 ";
 
     #[test]
+    fn test_normal_path() {
+        let result = normal_path(&parse(EXAMPLE));
+        assert_eq!(result.len(), 85);
+    }
+
+    #[test]
     fn test_part1() {
-        let expected_saves = [
-            vec![2; 14],
-            vec![4; 14],
-            vec![6; 2],
-            vec![8; 4],
-            vec![10; 2],
-            vec![12; 3],
-            vec![20],
-            vec![36],
-            vec![38],
-            vec![40],
-            vec![64],
+        let expected_saves: HashMap<_, _> = [
+            (0, 84),
+            (2, 14),
+            (4, 14),
+            (6, 2),
+            (8, 4),
+            (10, 2),
+            (12, 3),
+            (20, 1),
+            (36, 1),
+            (38, 1),
+            (40, 1),
+            (64, 1),
         ]
-        .concat();
-        let result = time_saves(&parse(EXAMPLE));
-        assert_eq!(expected_saves.len(), result.len());
-        for save in expected_saves {
-            assert!(result.contains(&save));
-        }
+        .into_iter()
+        .collect();
+        let info = &parse(EXAMPLE);
+        let result = time_saves(info, &normal_path(info), 2);
+        assert_eq!(expected_saves, result);
     }
 }

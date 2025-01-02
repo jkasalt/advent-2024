@@ -3,6 +3,8 @@ use std::{
     ops::{Add, Mul, Sub},
 };
 
+use num_traits::Signed;
+
 #[derive(Hash, Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Pos<T> {
     pub x: T,
@@ -28,6 +30,12 @@ impl<T> Pos<T> {
         let x = self.x.try_into().unwrap();
         let y = self.y.try_into().unwrap();
         Pos { x, y }
+    }
+}
+
+impl<T: Add + Signed> Pos<T> {
+    pub fn l1_norm(&self) -> T {
+        self.x.abs() + self.y.abs()
     }
 }
 
