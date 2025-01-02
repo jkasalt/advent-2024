@@ -18,9 +18,9 @@ where
     Matrix::new(items, width, height)
 }
 
-pub fn parse_grid_using_pos<F, T>(input: &str, map_each_char: F) -> Matrix<T>
+pub fn parse_grid_using_pos<F, T>(input: &str, mut map_each_char: F) -> Matrix<T>
 where
-    F: FnMut((Pos<usize>, char)) -> T,
+    F: FnMut(Pos<usize>, char) -> T,
 {
     let (width, height) = width_height(input);
     let items = input
@@ -28,6 +28,6 @@ where
         .filter(char::is_ascii_graphic)
         .enumerate()
         .map(|(i, c)| (Pos::new(i % width, i / width), c))
-        .map(map_each_char);
+        .map(|(pos, c)| map_each_char(pos, c));
     Matrix::new(items, width, height)
 }

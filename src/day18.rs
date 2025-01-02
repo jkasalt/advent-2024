@@ -20,7 +20,7 @@ fn parse(input: &str) -> Info {
     Info { walls, side_len }
 }
 
-fn dfs(info: &Info, until: usize) -> Option<usize> {
+fn bfs(info: &Info, until: usize) -> Option<usize> {
     let start_pos = Pos::new(0, 0);
     let end_pos = Pos::new(info.side_len, info.side_len);
     let walls = &info.walls[..until];
@@ -29,6 +29,9 @@ fn dfs(info: &Info, until: usize) -> Option<usize> {
     let mut to_visit = VecDeque::from([start_pos]);
     let mut visited = HashSet::new();
     while let Some(pos) = to_visit.pop_front() {
+        if visited.contains(&pos) {
+            continue;
+        }
         visited.insert(pos);
         let neighbors = [
             (pos.x + 1, pos.y),
@@ -56,7 +59,16 @@ fn dfs(info: &Info, until: usize) -> Option<usize> {
 
 #[aoc(day18, part1)]
 fn part1(info: &Info) -> usize {
-    dfs(info, 1024).expect("there should be a path to the end")
+    bfs(info, 1024).expect("there should be a path to the end")
+}
+
+#[aoc(day18, part2)]
+fn part2(info: &Info) -> String {
+    (0..info.walls.len())
+        .find(|&i| bfs(info, i).is_none())
+        .and_then(|i| info.walls.get(i - 1))
+        .map(|Pos { x, y }| format!("{x},{y}"))
+        .expect("There should be a wall that cuts off the path")
 }
 
 #[cfg(test)]
@@ -64,10 +76,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_dfs() {
+    fn test_bfs() {
         let mut info = parse(EXAMPLE);
         info.side_len = 6;
-        assert_eq!(dfs(&info, 12), Some(22));
+        assert_eq!(bfs(&info, 12), Some(22));
     }
 
     const EXAMPLE: &str = "5,4
@@ -96,4 +108,11 @@ mod tests {
 1,6
 2,0
 ";
+
+    #[test]
+    fn test_part2() {
+        let mut info = parse(EXAMPLE);
+        info.side_len = 6;
+        assert_eq!(&part2(&info), "6,1");
+    }
 }

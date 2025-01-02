@@ -13,7 +13,7 @@ enum Direction {
 }
 
 impl Direction {
-    const fn delta(self) -> Pos<i64> {
+    const fn delta(self) -> Pos<isize> {
         match self {
             Self::N => Pos::new(0, -1),
             Self::E => Pos::new(1, 0),
@@ -43,25 +43,21 @@ impl Direction {
 
 struct Info {
     maze: Matrix<char>,
-    start_pos: Pos<i64>,
-    end_pos: Pos<i64>,
+    start_pos: Pos<isize>,
+    end_pos: Pos<isize>,
 }
 
 #[aoc_generator(day16)]
 fn parse(input: &str) -> Info {
-    let mut start_pos: Option<Pos<i64>> = None;
+    let mut start_pos = None;
     let mut end_pos = None;
-    let maze = utils::parse_grid_using_pos(input, |(pos, c)| match c {
+    let maze = utils::parse_grid_using_pos(input, |pos, c| match c {
         'S' => {
-            let x = pos.x.try_into().unwrap();
-            let y = pos.y.try_into().unwrap();
-            start_pos = Some(Pos::new(x, y));
+            start_pos = Some(pos.to_isize());
             '.'
         }
         'E' => {
-            let x = pos.x.try_into().unwrap();
-            let y = pos.y.try_into().unwrap();
-            end_pos = Some(Pos::new(x, y));
+            end_pos = Some(pos.to_isize());
             '.'
         }
         '.' => '.',
@@ -77,12 +73,12 @@ fn parse(input: &str) -> Info {
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 struct State {
-    pos: Pos<i64>,
+    pos: Pos<isize>,
     dir: Direction,
     score: u64,
 }
 
-type Node = (Pos<i64>, Direction);
+type Node = (Pos<isize>, Direction);
 
 impl State {
     fn next_states(&self) -> [Self; 3] {

@@ -10,15 +10,24 @@ pub struct Pos<T> {
 }
 
 impl<T> Pos<T> {
-    pub fn to_usize(&self) -> Pos<usize>
+    pub fn to_usize(self) -> Pos<usize>
     where
-        T: TryInto<usize> + Copy + Clone,
+        T: TryInto<usize>,
         T::Error: Debug,
     {
-        Pos {
-            x: self.x.try_into().unwrap(),
-            y: self.y.try_into().unwrap(),
-        }
+        let x = self.x.try_into().unwrap();
+        let y = self.y.try_into().unwrap();
+        Pos { x, y }
+    }
+
+    pub fn to_isize(self) -> Pos<isize>
+    where
+        T: TryInto<isize>,
+        T::Error: Debug,
+    {
+        let x = self.x.try_into().unwrap();
+        let y = self.y.try_into().unwrap();
+        Pos { x, y }
     }
 }
 
